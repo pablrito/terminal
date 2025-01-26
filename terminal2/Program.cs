@@ -11,7 +11,7 @@ string hubUrl = config["AppSettings:hubUrl"];
 
     
 Console.ForegroundColor = ConsoleColor.Blue;
-Console.WriteLine("Welcome to the Terminal App!");
+Console.WriteLine("Welcome to the Terminal App your are using secure " + config["AppSettings:secret"]);
 Console.WriteLine("Type 'help' to see available commands.");
 Console.WriteLine("Type 'exit' to quit the application.");
 
