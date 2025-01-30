@@ -1,12 +1,15 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:signalr_core/signalr_core.dart';
 
 void main() {
   runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -17,24 +20,25 @@ class MyApp extends StatelessWidget {
 }
 
 class TerminalOutputScreen extends StatefulWidget {
+  const TerminalOutputScreen({super.key});
+
   @override
   _TerminalOutputScreenState createState() => _TerminalOutputScreenState();
 }
 
 class _TerminalOutputScreenState extends State<TerminalOutputScreen> {
+   late HubConnection _hubConnection;
+   String _status = "Disconnected";
+  
+
   List<String> logs = [];
-  ScrollController _scrollController = ScrollController();
+  final ScrollController _scrollController = ScrollController();
   late Timer _timer;
   final List<String> randomMessages = [
     "Initializing system...",
     "Fetching data...",
     "Connection established.",
     "Loading modules...",
-    "Error: Unable to connect.",
-    "Restarting services...",
-    "User logged in.",
-    "Updating database...",
-    "Task completed successfully.",
     "Compiling assets...",
     "Network latency detected.",
     "Security scan in progress..."
@@ -43,16 +47,85 @@ class _TerminalOutputScreenState extends State<TerminalOutputScreen> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(Duration(seconds: 5), (timer) {
+    _timer = Timer.periodic(Duration(seconds: 10), (timer) {
       _appendRandomText();
     });
+
+
+    _initializeSignalR();
   }
+
+ 
+ Future<void> _initializeSignalR() async {
+    // Replace this with your Azure SignalR URL
+    const signalRUrl = 'https://automate20250117155727.azurewebsites.net/terminal';
+
+    _hubConnection = HubConnectionBuilder()
+    .withUrl(
+      "$signalRUrl?X-Auth-Token=abc", // Add token as a query parameter
+    HttpConnectionOptions(
+        transport: HttpTransportType.webSockets,
+      ),
+    )
+    .build();
+
+
+    // Set up connection state listeners
+    _hubConnection.onclose((error) {
+      setState(() {
+        _status = "Disconnected";
+      });
+    });
+
+    _hubConnection.onreconnected((connectionId) {
+      setState(() {
+        _status = "Reconnected";
+      });
+    });
+
+    // Add a listener for messages
+    _hubConnection.on("ReceiveMessage", (message) {
+      setState(() {
+//        _receivedMessage = message?[0] + " " + message?[1] ?? "No message content";
+
+      String newMessage =
+          "${DateTime.now().toIso8601String()} - ${message}";
+      logs.add(newMessage);
+
+
+
+      });
+    });
+
+    // Start the connection
+    try {
+      await _hubConnection.start();
+      setState(() {
+            _status = "Connected with ID \n${_hubConnection.connectionId}";
+ 
+      });
+    } catch (e) {
+      setState(() {
+        _status = "Connection failed: $e";
+      });
+    }
+  }
+
+  Future<void> _sendMessage(String message) async {
+    if (_hubConnection.state == HubConnectionState.connected) {
+      await _hubConnection.invoke("Notification", args:[_hubConnection.connectionId,message]);
+    }
+  }
+
+
 
   void _appendRandomText() {
     setState(() {
       String newMessage =
           "${DateTime.now().toIso8601String()} - ${randomMessages[Random().nextInt(randomMessages.length)]}";
       logs.add(newMessage);
+
+      _sendMessage(newMessage);
     });
 
     // Auto-scroll to bottom
@@ -79,46 +152,60 @@ class _TerminalOutputScreenState extends State<TerminalOutputScreen> {
     String latestText = logs.isNotEmpty ? logs.last : "Waiting for updates...";
 
     return Scaffold(
-      appBar: AppBar(title: Text("Live Terminal Output")),
-      body: Column(
-        children: [
-          // Centered latest text
-          Expanded(
-            flex: 2,
-            child: Center(
-              child: Padding(
-                padding: EdgeInsets.all(20), // Added margin
-                child: Text(
-                  latestText,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+   //   appBar: AppBar(title: Text("Live Terminal Output")),
+      body: Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage("assets/1.jpg"), // Change this to your image path
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Column(
+          children: [
+            // Centered latest text
+            Expanded(
+              flex: 2,
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20), // Added margin
+                  child: Text(
+                    _status,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 18, 
+                      fontWeight: FontWeight.bold, 
+                      color: Colors.white, // Ensure visibility
+                      backgroundColor: Colors.black54, // Semi-transparent background
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-          Divider(),
-          // Scrollable terminal output with margins
-          Expanded(
-            flex: 3,
-            child: Container(
-             // color: Colors.white,
-              padding: EdgeInsets.symmetric(horizontal: 30), // Margin for list
-              child: ListView.builder(
-                controller: _scrollController,
-                itemCount: logs.length,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: EdgeInsets.symmetric(vertical: 1), // Margin for items
-                    child: Text(
-                      logs[index],
-                      style: TextStyle(color: Colors.green, fontFamily: "monospace"),
-                    ),
-                  );
-                },
+            Expanded(
+              flex: 3,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20), // Margin for list
+                child: ListView.builder(
+                  controller: _scrollController,
+                  itemCount: logs.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: EdgeInsets.symmetric(vertical: 2), // Margin for items
+                      child: Text(
+                        logs[index],
+                        style: TextStyle(
+                          color: Colors.white, 
+                          fontFamily: "monospace",
+                          backgroundColor: Colors.black54, // Enhance readability
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
