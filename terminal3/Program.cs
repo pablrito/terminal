@@ -1,54 +1,85 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Configuration;
 
- IConfiguration config = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .Build();
-            
+IConfiguration config = new ConfigurationBuilder()
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .Build();
+
 string? hubUrl = config["AppSettings:hubUrl"];
 
-#pragma warning disable CS8604 // Possible null reference argument.
 var connection = new HubConnectionBuilder()
-            .WithUrl(hubUrl, options =>
-            {
-            })
-            .Build();
-#pragma warning restore CS8604 // Possible null reference argument.
+    .WithUrl(hubUrl)
+    .WithAutomaticReconnect()
+    .Build();
 
-connection.On<Message>("ReceiveMessage", (message) =>
+connection.On<Message>("ReceiveMessage", async (message) =>
 {
-    Console.WriteLine($"Incomming message : {message.type}"); 
-    connection.InvokeAsync("Notification", connection.ConnectionId, message.type + " received from " + connection.ConnectionId);
+    Console.WriteLine($"Incoming message: {message.type}");
+    await connection.InvokeAsync("Notification", connection.ConnectionId, $"{message.type} received from {connection.ConnectionId}");
 });
 
-
-
-try
+// Reconnecting event
+connection.Reconnecting += (error) =>
 {
-    await connection.StartAsync();
-    Console.WriteLine($"Connected to the server, connection Id : {connection.ConnectionId}");
-    Console.WriteLine($"Started to listened, press q for quit");
+    Console.WriteLine($"Reconnecting... Reason: {error?.Message}");
+    return Task.CompletedTask;
+};
 
-    // Loop for reading commands
-    while (true)
+// Reconnected event
+connection.Reconnected += (connectionId) =>
+{
+    Console.WriteLine($"Reconnected! Connection ID: {connectionId}");
+    return Task.CompletedTask;
+};
+
+// Closed event
+connection.Closed += async (error) =>
+{
+    Console.WriteLine($"Connection lost: {error?.Message}");
+    await Task.Delay(5000);
+    try
     {
-        string? input = Console.ReadLine();
-        if (!string.IsNullOrWhiteSpace(input) && input.ToLower() == "q")
-        {
-            await connection.StopAsync();
-            Console.WriteLine($"Disconnected to the server");
-            Console.WriteLine($"Exiting the application...");
-            break;
-        }
+        await connection.StartAsync();
+        Console.WriteLine("Reconnected manually.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Failed to reconnect: {ex.Message}");
+    }
+};
+
+// Retry connection until successful
+while (true)
+{
+    try
+    {
+        await connection.StartAsync();
+        Console.WriteLine($"Connected to the server, connection Id : {connection.ConnectionId}");
+        break;
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Failed to connect: {ex.Message}");
+        Console.WriteLine("Retrying in 5 seconds...");
+        await Task.Delay(5000);
     }
 }
-catch (Exception ex)
+
+// Main loop to read user input
+Console.WriteLine("Started listening, press 'q' to quit.");
+while (true)
 {
-    Console.WriteLine($"Connection closed: {ex.Message}");
+    string? input = Console.ReadLine();
+    if (!string.IsNullOrWhiteSpace(input) && input.ToLower() == "q")
+    {
+        await connection.StopAsync();
+        Console.WriteLine("Disconnected from the server.");
+        break;
+    }
 }
 
 internal class Message
 {
-     public string type { get; set; }
+    public string type { get; set; }
 }
