@@ -16,11 +16,12 @@ var connection = new HubConnectionBuilder()
             .Build();
 #pragma warning restore CS8604 // Possible null reference argument.
 
-connection.On<string>("ReceiveMessage", (message) =>
+connection.On<Message>("ReceiveMessage", (message) =>
 {
-    Console.WriteLine($"Incomming message : {message}"); 
-    connection.InvokeAsync("Notification", connection.ConnectionId, message + " received from " + connection.ConnectionId);
+    Console.WriteLine($"Incomming message : {message.type}"); 
+    connection.InvokeAsync("Notification", connection.ConnectionId, message.type + " received from " + connection.ConnectionId);
 });
+
 
 
 try
@@ -45,4 +46,9 @@ try
 catch (Exception ex)
 {
     Console.WriteLine($"Connection closed: {ex.Message}");
+}
+
+internal class Message
+{
+     public string type { get; set; }
 }
