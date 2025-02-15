@@ -9,13 +9,17 @@ var connection = new HubConnectionBuilder()
     .ConfigureLogging(logging =>
     {
         logging.SetMinimumLevel(LogLevel.Debug);
-      
+
     })
     .Build();
 
-connection.On<string,JsonDocument>("ReceiveStockUpdate", (stock, priceJson) =>
+connection.On<string, JsonDocument>("ReceiveStockUpdate", (stock, priceJson) =>
 {
-    Console.WriteLine($"Stock : {stock} Price : {priceJson.RootElement.GetRawText()}");
+    long timestamp = priceJson.RootElement.GetProperty("t").GetInt64();
+    DateTime dateTime = DateTime.UnixEpoch.AddSeconds(timestamp).ToLocalTime();
+
+    Console.WriteLine($"Stock: {stock} Price: {priceJson.RootElement.GetRawText()} Timestamp: {dateTime}");
+
 });
 
 // Reconnecting event
@@ -78,4 +82,4 @@ while (true)
     }
 }
 
-      
+
