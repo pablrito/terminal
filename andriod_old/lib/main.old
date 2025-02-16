@@ -1,0 +1,67 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:permission_handler/permission_handler.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: CallScreen(),
+    );
+  }
+}
+
+class CallScreen extends StatelessWidget {
+  final String phoneNumber = "222"; // Replace with a real number
+ static const platform = MethodChannel('call_control');
+
+  Future<void> makeCall() async {
+    // Request permission
+    var status = await Permission.phone.request();
+    if (status.isGranted) {
+      final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri);
+      } else {
+        print("Could not launch call");
+      }
+    } else {
+      print("Phone call permission denied");
+    }
+  }
+
+  Future<void> hangUpCall() async {
+    try {
+      await platform.invokeMethod('hangUpCall');
+      print("Call ended successfully");
+    } on PlatformException catch (e) {
+      print("Failed to end call: ${e.message}");
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        body: Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min, // Keeps the column centered
+        children: [
+          ElevatedButton(
+            onPressed: makeCall,
+            child: Text("Make Call 222"),
+          ),
+          SizedBox(height: 20), // Adds spacing between buttons
+          ElevatedButton(
+            onPressed: hangUpCall,
+            child: Text("Hang Up Call"),
+          ),
+        ],
+      ),
+    ));
+  }
+}

@@ -1,0 +1,367 @@
+import 'package:flutter/material.dart';
+import 'package:signalr_core/signalr_core.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+Future<String?> getIOSUUID() async {
+  final deviceInfo = DeviceInfoPlugin();
+  IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+  return iosInfo.identifierForVendor;
+}
+
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: const HomeScreen(),
+    );
+  }
+}
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late HubConnection _hubConnection;
+  String? _device = "";
+  String _status = "Initializing...";
+  bool _isCalling = false;
+  List<String> logs = [];
+  int _selectedIndex = 0; // Selected bottom navigation index
+
+  @override
+  void initState() {
+    super.initState();
+    initializeSignal();
+  }
+
+  Future<void> initializeSignal() async {
+    const signalRUrl =
+        'https://automate20250117155727.azurewebsites.net/terminal';
+
+    _hubConnection = HubConnectionBuilder()
+        .withUrl(
+          "$signalRUrl?X-Auth-Token=abc",
+          HttpConnectionOptions(
+            transport: HttpTransportType.webSockets,
+          ),
+        )
+        .withAutomaticReconnect()
+        .build();
+
+    setState(() {
+      _status = "Ready to Connect";
+    });
+
+    _hubConnection.onclose((error) {
+      _appendLog("Connection Closed");
+      setState(() {
+        _status = "Disconnected";
+      });
+    });
+
+    _hubConnection.onreconnected((connectionId) {
+      _appendLog("Reconnected: $connectionId");
+      setState(() {
+        _status = "Reconnected";
+      });
+    });
+
+    _hubConnection.on("ReceiveMessage", (List<Object?>? message) async {
+      if (message == null || message.isEmpty) return;
+
+      String msg = message.first.toString().toLowerCase();
+      _appendLog("Message Received: $msg");
+
+      setState(() {
+        _status = "Message Received: $msg";
+      });
+
+      if (msg == "call") {
+        _makePhoneCall("222");
+      } else if (msg == "hangup") {
+        _hangUpCall();
+      } else if (msg == "answer") {
+        _answerCall();
+      }
+    });
+
+    try {
+      String? device = await getIOSUUID();
+      setState(() {
+        _device = device ?? "Unknown Device";
+      });
+    } catch (e) {
+      _appendLog("Error: ${e.toString()}");
+      setState(() {
+        _status = "Error: ${e.toString()}";
+      });
+    }
+  }
+
+  void _appendLog(String log) {
+    setState(() {
+      logs.add("${DateTime.now().toLocal()} - $log");
+    });
+  }
+
+  Future<void> _connectToSignal() async {
+    setState(() {
+      _status = "Connecting...";
+    });
+
+    try {
+      await _hubConnection.start();
+      _appendLog("Connected: ${_hubConnection.connectionId}");
+      setState(() {
+        _status = "Connected ${_hubConnection.connectionId}";
+      });
+    } catch (e) {
+      _appendLog("Connection Failed: ${e.toString()}");
+      setState(() {
+        _status = "Connection Failed: ${e.toString()}";
+      });
+    }
+  }
+
+  Future<void> _disconnectFromSignal() async {
+    setState(() {
+      _status = "Disconnecting...";
+    });
+
+    try {
+      await _hubConnection.stop();
+      _appendLog("Disconnected");
+      setState(() {
+        _status = "Disconnected";
+      });
+    } catch (e) {
+      _appendLog("Disconnection Failed: ${e.toString()}");
+      setState(() {
+        _status = "Disconnection Failed: ${e.toString()}";
+      });
+    }
+  }
+
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final Uri url = Uri.parse("tel:$phoneNumber");
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+      _appendLog("Calling: $phoneNumber");
+      setState(() {
+        _isCalling = true;
+        _status = "Calling $phoneNumber...";
+      });
+    } else {
+      _appendLog("Failed to Call");
+      setState(() {
+        _status = "Failed to Call";
+      });
+    }
+  }
+
+  void _answerCall() {
+    if (!_isCalling) {
+      _appendLog("No Incoming Call to Answer");
+      setState(() {
+        _status = "No Incoming Call";
+      });
+      return;
+    }
+    _appendLog("Call Answered");
+    setState(() {
+      _status = "Call Answered!";
+    });
+  }
+
+  void _hangUpCall() {
+    if (!_isCalling) {
+      _appendLog("No Active Call to Hang Up");
+      setState(() {
+        _status = "No Active Call";
+      });
+      return;
+    }
+    _appendLog("Call Ended");
+    setState(() {
+      _isCalling = false;
+      _status = "Call Ended";
+    });
+  }
+
+  void _onBottomNavTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  Widget _buildLogScreen() {
+    return Stack(
+      children: [
+        // Background Image
+        Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage("assets/blue.jpg"), // Change to your image file
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+
+        // Semi-transparent Overlay for Better Readability
+        Container(
+          width: double.infinity,
+          height: double.infinity,
+          color: Colors.black.withOpacity(0.6), // Dark overlay
+        ),
+
+        // Logs List
+        Column(
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(10),
+              child: Text(
+                "Logs",
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: logs.isEmpty
+                    ? const Center(
+                        child: Text(
+                          "No logs yet",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      )
+                    : Scrollbar(
+                        child: SingleChildScrollView(
+                          reverse: true, // Auto-scroll to newest log
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: logs.map((log) {
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 4),
+                                child: Text(
+                                  log,
+                                  style: const TextStyle(
+                                      color: Colors.white, fontSize: 12),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMainScreen() {
+    return Stack(
+      children: [
+        // Background Image
+        Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage("assets/4.jpg"),
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+
+        // Top Section (Status)
+        Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 60),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _status,
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      backgroundColor: Colors.black54),
+                 
+                ),
+                const SizedBox(height: 10),
+                Text(_device!,
+                    style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.white,
+                        backgroundColor: Colors.black54)),
+               /**  const SizedBox(height: 10),
+                Text(_status,
+                    style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.white,
+                        backgroundColor: Colors.black54)),**/
+              ],
+            ),
+          ),
+        ),
+
+        // Buttons at Bottom
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 60),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                    onPressed: _connectToSignal, child: const Text('Connect')),
+                ElevatedButton(
+                    onPressed: _disconnectFromSignal,
+                    child: const Text('Disconnect')),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _selectedIndex == 1 ? _buildLogScreen() : _buildMainScreen(),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onBottomNavTapped,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Logs'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.settings), label: 'Settings'),
+        ],
+      ),
+    );
+  }
+}
