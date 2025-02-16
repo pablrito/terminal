@@ -1,3 +1,4 @@
+import 'package:final_ios/screen/home.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -59,13 +60,13 @@ class OnboardingPage1 extends StatelessWidget {
         onSkip: () {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
+            MaterialPageRoute(builder: (context) => const HomeBar()),
           );
         },
         onFinish: () {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
+            MaterialPageRoute(builder: (context) => const HomeBar()),
           );
         },
       ),
@@ -102,7 +103,7 @@ class _OnboardingPageState extends State<OnboardingPagePresenter> {
           Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
-                image: AssetImage('assets/blue.jpg'), // Background Image
+                image: AssetImage('assets/blue1.jpg'), // Background Image
                 fit: BoxFit.cover,
               ),
             ),
@@ -128,11 +129,15 @@ class _OnboardingPageState extends State<OnboardingPagePresenter> {
                             flex: 3,
                             child: Padding(
                               padding: const EdgeInsets.all(32.0),
-                              child: SvgPicture.asset(
+                              child:
+                              
+                               SvgPicture.asset(
                                 item.imageAsset,
-                                height: 300,
-                                width: 300,
+                               // height: 300,
+                               // width: 300,
                                 color: Colors.white,
+                                    fit: BoxFit.contain, // Adjusts how the image is scaled
+
                               ),
                             ),
                           ),
@@ -214,7 +219,7 @@ class _OnboardingPageState extends State<OnboardingPagePresenter> {
                               Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (context) => const HomeScreen()),
+                                    builder: (context) => const HomeBar()),
                               );
                             },
                         child: const Text("Skip"),
@@ -273,18 +278,4 @@ class OnboardingPageModel {
     required this.bgColor,
     required this.textColor,
   });
-}
-
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Home Screen")),
-      body: const Center(
-        child: Text("Home "),
-      ),
-    );
-  }
 }
