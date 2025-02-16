@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Onboarding App',
+      title: 'Onboarding',
       theme: ThemeData(primarySwatch: Colors.blue),
       home: const OnboardingPage1(),
     );
@@ -33,7 +33,7 @@ class OnboardingPage1 extends StatelessWidget {
             description: 'Enjoy the best of the world in the palm of your hands.',
             imageAsset: 'assets/image1.svg',
             bgColor: Colors.transparent,
-            textColor: Colors.white,
+           textColor: Colors.white,
           ),
           OnboardingPageModel(
             title: 'Connect with your friends',
@@ -133,10 +133,10 @@ class _OnboardingPageState extends State<OnboardingPagePresenter> {
                               
                                SvgPicture.asset(
                                 item.imageAsset,
-                               // height: 300,
-                               // width: 300,
+                                height: 300,
+                                width: 300,
                                 color: Colors.white,
-                                    fit: BoxFit.contain, // Adjusts how the image is scaled
+                                 //   fit: BoxFit.contain, // Adjusts how the image is scaled
 
                               ),
                             ),

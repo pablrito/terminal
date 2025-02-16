@@ -21,43 +21,46 @@ class _HomeBarState extends State<HomeBar> {
   }
 
   Future<void> initializeSignal() async {
-    const signalRUrl = 'https://automate20250117155727.azurewebsites.net/stock';
+  const signalRUrl = 'https://automate20250117155727.azurewebsites.net/stock';
 
-    _hubConnection = HubConnectionBuilder()
-        .withUrl(
-          signalRUrl,
-          HttpConnectionOptions(
-            transport: HttpTransportType.webSockets,
-          ),
-        )
-        .withAutomaticReconnect()
-        .build();
+  _hubConnection = HubConnectionBuilder()
+      .withUrl(
+        signalRUrl,
+        HttpConnectionOptions(
+          transport: HttpTransportType.webSockets,
+     //     logger: (level, message) => print("SignalR Log: $message"),
+        ),
+      )
+      .withAutomaticReconnect()
+      .build();
 
-
-
-    _hubConnection.onclose((error) {
-      setState(() {
-        _status = "Disconnected";
-      });
+  _hubConnection.onclose((error) {
+    setState(() {
+      _status = "Disconnected";
     });
+  });
 
-    _hubConnection.onreconnected((connectionId) {
-      setState(() {
-        _status = "Reconnected";
-      });
+  _hubConnection.onreconnected((connectionId) {
+    setState(() {
+      _status = "Reconnected";
     });
+  });
 
-    try {
-      await _hubConnection.start();
-      setState(() {
-        _status = "Connected ${_hubConnection.connectionId}";
-      });
-    } catch (e) {
-      setState(() {
-        _status = "Connection Failed: ${e.toString()}";
-      });
-    }
+  try {
+    print("Before connection");
+    await _hubConnection.start();
+    print("Connected with ID: ${_hubConnection.connectionId}");
+    setState(() {
+      _status = "Connected: ${_hubConnection.connectionId}";
+    });
+  } catch (e) {
+    print("Connection failed: $e");
+    setState(() {
+      _status = "Connection Failed: ${e.toString()}";
+    });
   }
+}
+
 
   static const List<Widget> _pages = <Widget>[
     Icon(
@@ -113,12 +116,6 @@ class _HomeBarState extends State<HomeBar> {
                         backgroundColor: Colors.black54),
                   ),
                   const SizedBox(height: 10),
-                  /**  const SizedBox(height: 10),
-                Text(_status,
-                    style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.white,
-                        backgroundColor: Colors.black54)),**/
                 ],
               ),
             ),

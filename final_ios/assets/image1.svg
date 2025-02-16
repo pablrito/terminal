@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 160 160">
-  <line class="cls-1" x1="56.279" y1="98.235" x2="99.845" y2="82.274"/>
-  <line class="cls-1" x1="98.69" y1="77.935" x2="64.41" y2="64.189"/>
-  <polyline class="cls-1" points="55.417 102.761 110.463 129.015 110.953 129.015 88.044 30.985 71.653 30.985 48.744 129.015"/>
-  <polyline class="cls-1" points="34.738 64.073 34.738 49.979 125.262 49.979 125.262 64.073"/>
-  <line class="cls-1" x1="50.819" y1="49.992" x2="50.819" y2="64.073"/>
-  <line class="cls-1" x1="108.458" y1="49.992" x2="108.458" y2="64.073"/>
-  <line class="cls-1" x1="65.584" y1="58.694" x2="92.668" y2="50.72"/>
-  
+  <line x1="56.279" y1="98.235" x2="99.845" y2="82.274" stroke="black" stroke-width="2"/>
+  <line x1="98.69" y1="77.935" x2="64.41" y2="64.189" stroke="black" stroke-width="2"/>
+  <polyline points="55.417 102.761 110.463 129.015 110.953 129.015 88.044 30.985 71.653 30.985 48.744 129.015" 
+    stroke="black" stroke-width="2" fill="none"/>
+  <polyline points="34.738 64.073 34.738 49.979 125.262 49.979 125.262 64.073" 
+    stroke="black" stroke-width="2" fill="none"/>
+  <line x1="50.819" y1="49.992" x2="50.819" y2="64.073" stroke="black" stroke-width="2"/>
+  <line x1="108.458" y1="49.992" x2="108.458" y2="64.073" stroke="black" stroke-width="2"/>
+  <line x1="65.584" y1="58.694" x2="92.668" y2="50.72" stroke="black" stroke-width="2"/>
 </svg>
