@@ -1,86 +1,120 @@
 import 'package:flutter/material.dart';
 import 'package:signalr_core/signalr_core.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 
-class HomeBar extends StatefulWidget {
-  const HomeBar({super.key});
-
-  @override
-  _HomeBarState createState() => _HomeBarState();
+Future<String?> getIOSUUID() async {
+  final deviceInfo = DeviceInfoPlugin();
+  IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+  return iosInfo.identifierForVendor;
 }
 
-class _HomeBarState extends State<HomeBar> {
-  late HubConnection _hubConnection;
-  String _status = "Initializing...";
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
-  int _selectedIndex = 0;
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late HubConnection _hubConnection;
+  String? _device = "";
+  String _status = "Initializing...";
 
   @override
   void initState() {
     super.initState();
     initializeSignal();
+
+    
   }
 
   Future<void> initializeSignal() async {
-  const signalRUrl = 'https://automate20250117155727.azurewebsites.net/stock';
+    const signalRUrl =
+        'https://automate20250117155727.azurewebsites.net/terminal';
 
-  _hubConnection = HubConnectionBuilder()
-      .withUrl(
-        signalRUrl,
-        HttpConnectionOptions(
-          transport: HttpTransportType.webSockets,
-     //     logger: (level, message) => print("SignalR Log: $message"),
-        ),
-      )
-      .withAutomaticReconnect()
-      .build();
+    _hubConnection = HubConnectionBuilder()
+        .withUrl(
+          "$signalRUrl?X-Auth-Token=abc",
+          HttpConnectionOptions(
+            transport: HttpTransportType.webSockets,
+          ),
+        )
+        .withAutomaticReconnect()
+        .build();
 
-  _hubConnection.onclose((error) {
     setState(() {
-      _status = "Disconnected";
+      _status = "Ready to Connect";
     });
-  });
 
-  _hubConnection.onreconnected((connectionId) {
-    setState(() {
-      _status = "Reconnected";
+    _hubConnection.onclose((error) {
+      setState(() {
+        _status = "Disconnected";
+      });
     });
-  });
 
-  try {
-    print("Before connection");
-    await _hubConnection.start();
-    print("Connected with ID: ${_hubConnection.connectionId}");
-    setState(() {
-      _status = "Connected: ${_hubConnection.connectionId}";
+    _hubConnection.onreconnected((connectionId) {
+      setState(() {
+        _status = "Reconnected";
+      });
     });
-  } catch (e) {
-    print("Connection failed: $e");
-    setState(() {
-      _status = "Connection Failed: ${e.toString()}";
+
+    _hubConnection.on("ReceiveMessage", (List<Object?>? message) async {
+      if (message == null || message.isEmpty) return;
+
+      String msg = message.first.toString().toLowerCase();
+      setState(() {
+        _status = "Message Received: $msg";
+      });
+
+    
+      // Sending a message to the server
+        _hubConnection.invoke("Notification", args: [
+          _hubConnection.connectionId,
+          "$msg received from ${_hubConnection.connectionId}"
+        ]).catchError((err) {
+          print("Error while sending message: $err");
+        });
+
+
     });
   }
-}
 
-
-  static const List<Widget> _pages = <Widget>[
-    Icon(
-      Icons.call,
-      size: 150,
-    ),
-    Icon(
-      Icons.camera,
-      size: 150,
-    ),
-    Icon(
-      Icons.chat,
-      size: 150,
-    ),
-  ];
-
-  void _onItemTapped(int index) {
+  // ✅ Start Connection
+  Future<void> _connectToSignal() async {
     setState(() {
-      _selectedIndex = index;
+      _status = "Connecting...";
     });
+
+    try {
+      await _hubConnection.start();
+      setState(() {
+        _status = "Connected ${_hubConnection.connectionId}";
+      });
+    } catch (e) {
+      setState(() {
+        _status = "Connection Failed: ${e.toString()}";
+      });
+    }
+
+  
+  }
+
+  // ✅ Stop Connection
+  Future<void> _disconnectFromSignal() async {
+    setState(() {
+      _status = "Disconnecting...";
+    });
+
+    try {
+      await _hubConnection.stop();
+      setState(() {
+        _status = "Disconnected";
+      });
+    } catch (e) {
+      setState(() {
+        _status = "Disconnection Failed: ${e.toString()}";
+      });
+    }
   }
 
   @override
@@ -89,6 +123,8 @@ class _HomeBarState extends State<HomeBar> {
       body: Stack(
         children: [
           Container(
+            width: double.infinity,
+            height: double.infinity,
             decoration: const BoxDecoration(
               image: DecorationImage(
                 image: AssetImage("assets/blue.jpg"),
@@ -96,10 +132,6 @@ class _HomeBarState extends State<HomeBar> {
               ),
             ),
           ),
-          /***Center(
-            child: _pages.elementAt(_selectedIndex),
-          ),
-          **/
           Align(
             alignment: Alignment.topCenter,
             child: Padding(
@@ -108,16 +140,42 @@ class _HomeBarState extends State<HomeBar> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    _status,
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        backgroundColor: Colors.black54),
+                    _device ?? "No Device", // <-- Fixed null handling
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      backgroundColor: Colors.black54,
+                    ),
                   ),
                   const SizedBox(height: 10),
+                  Text(
+                    _status,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      backgroundColor: Colors.black54,
+                    ),
+                  ),
                 ],
               ),
+            ),
+          ),
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton(
+                  onPressed: _connectToSignal,
+                  child: const Text('Connect'),
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: _disconnectFromSignal,
+                  child: const Text('Disconnect'),
+                ),
+              ],
             ),
           ),
         ],
@@ -137,8 +195,6 @@ class _HomeBarState extends State<HomeBar> {
             label: 'Settings',
           ),
         ],
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
       ),
     );
   }

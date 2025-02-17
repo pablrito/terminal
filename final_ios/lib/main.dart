@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Onboarding',
+      title: 'Fast, Fluid and Secure ',
       theme: ThemeData(primarySwatch: Colors.blue),
       home: const OnboardingPage1(),
     );
@@ -60,13 +60,13 @@ class OnboardingPage1 extends StatelessWidget {
         onSkip: () {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const HomeBar()),
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
           );
         },
         onFinish: () {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const HomeBar()),
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
           );
         },
       ),
@@ -219,7 +219,7 @@ class _OnboardingPageState extends State<OnboardingPagePresenter> {
                               Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (context) => const HomeBar()),
+                                    builder: (context) => const HomeScreen()),
                               );
                             },
                         child: const Text("Skip"),
