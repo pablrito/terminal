@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:signalr_core/signalr_core.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+
 
 Future<String?> getIOSUUID() async {
   final deviceInfo = DeviceInfoPlugin();
@@ -21,16 +23,28 @@ class _HomeScreenState extends State<HomeScreen> {
   String _status = "Initializing...";
 
   @override
-  void initState() {
+  void initState()  {
     super.initState();
     initializeSignal();
 
+    
     
   }
 
   Future<void> initializeSignal() async {
     const signalRUrl =
         'https://automate20250117155727.azurewebsites.net/terminal';
+
+        try {
+      String? device = await getIOSUUID();
+      setState(() {
+        _device = device ?? "Unknown Device";
+      });
+    } catch (e) {
+      setState(() {
+        _status = "Error: ${e.toString()}";
+      });
+    }
 
     _hubConnection = HubConnectionBuilder()
         .withUrl(
@@ -66,6 +80,14 @@ class _HomeScreenState extends State<HomeScreen> {
         _status = "Message Received: $msg";
       });
 
+Fluttertoast.showToast(
+    msg: "New Message: $msg",
+    toastLength: Toast.LENGTH_SHORT,
+    gravity: ToastGravity.BOTTOM,
+    backgroundColor: Colors.black54,
+    textColor: Colors.white,
+    fontSize: 16.0,
+  );
     
       // Sending a message to the server
         _hubConnection.invoke("Notification", args: [
@@ -90,6 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _status = "Connected ${_hubConnection.connectionId}";
       });
+
     } catch (e) {
       setState(() {
         _status = "Connection Failed: ${e.toString()}";
