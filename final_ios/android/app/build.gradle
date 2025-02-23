@@ -1,3 +1,10 @@
+buildscript {
+    ext.kotlin_version = '1.9.22'  // Downgrade to match embedded Kotlin
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
 plugins {
     id "com.android.application"
     id "kotlin-android"
@@ -7,38 +14,24 @@ plugins {
 
 android {
     namespace = "com.example.final_ios"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
-    }
+    compileSdk = 34 // Manually set this instead of flutter.compileSdkVersion
+    ndkVersion = "25.1.8937393" // Or match the version in your SDK Manager
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.final_ios"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
-    }
-
-    buildTypes {
-        release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.debug
-        }
+        minSdk = 21  // Explicitly set this
+        targetSdk = 34 // Instead of flutter.targetSdkVersion
+        versionCode = 1
+        versionName = "1.0"
     }
 }
 
 flutter {
     source = "../.."
 }
+
+dependencies {
+    implementation "androidx.fragment:fragment:1.7.1"
+}
+
+

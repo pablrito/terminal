@@ -1,0 +1,2 @@
+/Users/lucca/dev/terminal/final_ios/android/app/.cxx/Debug/1u5d70s6/x86/CMakeFiles/edit_cache.dir
+/Users/lucca/dev/terminal/final_ios/android/app/.cxx/Debug/1u5d70s6/x86/CMakeFiles/rebuild_cache.dir
