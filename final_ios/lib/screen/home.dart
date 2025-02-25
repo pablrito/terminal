@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:signalr_core/signalr_core.dart';
 import 'package:oktoast/oktoast.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,7 +12,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late HubConnection _hubConnection;
-  String? _device = "";
+  bool _isConnected = false; // Track connection status
   String _status = "Initializing...";
 
   @override
@@ -21,7 +22,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> initializeSignal() async {
-    const signalRUrl = 'https://automate20250117155727.azurewebsites.net/terminal';
+    const signalRUrl =
+        'https://automate20250117155727.azurewebsites.net/terminal';
 
     _hubConnection = HubConnectionBuilder()
         .withUrl(
@@ -40,12 +42,14 @@ class _HomeScreenState extends State<HomeScreen> {
     _hubConnection.onclose((error) {
       setState(() {
         _status = "Disconnected";
+        _isConnected = false;
       });
     });
 
     _hubConnection.onreconnected((connectionId) {
       setState(() {
         _status = "Reconnected";
+        _isConnected = true;
       });
     });
 
@@ -79,13 +83,31 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? previousConnectionId = prefs.getString("connectionId");
+
       await _hubConnection.start();
+
+      String? newConnectionId = _hubConnection.connectionId;
+
+      if (newConnectionId != null) {
+        await prefs.setString("connectionId", newConnectionId);
+      }
+
       setState(() {
         _status = "Connected ${_hubConnection.connectionId}";
+        _isConnected = true;
       });
+
+      if (previousConnectionId != null) {
+        print(
+            "should we call previos $previousConnectionId newconnection $newConnectionId");
+        //  await _hubConnection.invoke("Reconnect", args: [previousConnectionId, newConnectionId]);
+      }
     } catch (e) {
       setState(() {
         _status = "Connection Failed: ${e.toString()}";
+        _isConnected = false;
       });
     }
   }
@@ -99,6 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
       await _hubConnection.stop();
       setState(() {
         _status = "Disconnected";
+        _isConnected = false;
       });
     } catch (e) {
       setState(() {
@@ -130,15 +153,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      _device ?? "No Device",
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        backgroundColor: Colors.black54,
-                      ),
-                    ),
                     const SizedBox(height: 10),
                     Text(
                       _status,
@@ -157,13 +171,29 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  ElevatedButton(
-                    onPressed: _connectToSignal,
+                  OutlinedButton(
+                    onPressed: _isConnected ? null : _connectToSignal,
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                          color: Colors.green, width: 2), // Green border
+                      foregroundColor : Colors.white,
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    ),
                     child: const Text('Connect'),
                   ),
                   const SizedBox(height: 10),
-                  ElevatedButton(
-                    onPressed: _disconnectFromSignal,
+                  OutlinedButton(
+                    onPressed: _isConnected ? _disconnectFromSignal : null,
+                    style: OutlinedButton.styleFrom(
+                      side:
+                          BorderSide(color: Colors.green, width: 2), 
+                       foregroundColor : Colors.white,
+                     //  backgroundColor: Colors.red, // Green when enabled
+         
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    ),
                     child: const Text('Disconnect'),
                   ),
                 ],
